@@ -29,6 +29,7 @@ const router = express.Router()
 router.get('/users', (req, res, next) => {
   User.find()
     .populate('user', '-token')
+    .populate('user', 'username')
     .then(users => {
       // `users` will be an array of Mongoose documents
       // we want to convert each one to a POJO, so we use `.map` to
@@ -60,6 +61,7 @@ router.post('/sign-up', (req, res, next) => {
     .then(hash => {
       // return necessary params to create a user
       return {
+        username: req.body.credentials.username,
         email: req.body.credentials.email,
         hashedPassword: hash
       }
