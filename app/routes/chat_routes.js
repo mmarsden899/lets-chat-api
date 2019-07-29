@@ -6,14 +6,10 @@ const passport = require('passport')
 // pull in Mongoose model for chats and users
 const Chat = require('../models/chat')
 const Message = require('../models/message')
-const User = require('../models/user')
 
 // this is a collection of methods that help us detect situations when we need
 // to throw a custom error
 const customErrors = require('../../lib/custom_errors')
-
-// check if no returned users
-const recipientNotFound = customErrors.recipientNotFound
 
 // we'll use this function to send 404 when non-existant document is requested
 const handle404 = customErrors.handle404
@@ -40,10 +36,6 @@ const router = express.Router()
 // GET /chats
 router.get('/chats', (req, res, next) => {
   Chat.find()
-    .sort('-updatedAt')
-    .populate('user1', 'username _id profile')
-    .populate('user2', 'username _id profile')
-    .populate('lastMessage')
     // .populate({path: 'lastMessage', populate: {path: 'owner'}})
     .then(chats => {
       // `chats` will be an array of Mongoose documents
@@ -62,10 +54,6 @@ router.get('/chats', (req, res, next) => {
 router.get('/chats/:id', (req, res, next) => {
   // req.params.id will be set based on the `:id` in the route
   Chat.findById(req.params.id)
-    .populate('user1', 'username _id profile')
-    .populate('user2', 'username _id profile')
-    .populate('lastMessage')
-    .populate({path: 'lastMessage', populate: {path: 'owner'}})
     // .then(console.log)
     .then(handle404)
     // if `findById` is succesful, respond with 200 and "chat" JSON
@@ -84,50 +72,17 @@ router.get('/chats/:id', (req, res, next) => {
 // CREATE
 // POST /chats
 router.post('/chats', requireToken, (req, res, next) => {
-  // first, defend against notexistant users and chatting with self
-  User.find({ username: req.body.chat.with })
-    .then(recipientNotFound)
-    .then(users => {
-      // ready to have a chat!
-      // check to see if one exists already
-      Chat.find({
-        $or:
-        [{ $and:
-          [
-            { user1: req.body.chat.user1._id },
-            { user2: req.body.chat.user2._id }
-          ] },
-        { $and:
-          [
-            { user1: req.body.chat.user2._id },
-            { user2: req.body.chat.user1._id }
-          ]
-        }]
-      })
-        .then(chats => {
-          // if chat doesn't exist, make one and send it to client
-          if (chats.length === 0) {
-            // set first user of new chat to be current user
-            // second user to be the found user
-            // and remove 'with' property before creation
-            req.body.chat.user1 = req.body.chat.user1
-            req.body.chat.user2 = req.body.chat.user2
-            delete req.body.chat.with
+  // set owner of new example to be current user
+  req.body.example.owner = req.user.id
 
-            // create new chat
-            Chat.create(req.body.chat)
-            // respond to succesful `create` with status 201 and JSON of new "chat"
-              .then(chat => {
-                res.status(201).json({ chat: chat.toObject() })
-              })
-              .catch(next)
-          } else {
-          // if chat already exists, then send it to the client
-            res.status(201).json({ chat: chats[0].toObject() })
-          }
-        })
-        .catch(next)
+  Chat.create(req.body.example)
+    // respond to succesful `create` with status 201 and JSON of new "example"
+    .then(example => {
+      res.status(201).json({ example: example.toObject() })
     })
+    // if an error occurs, pass it off to our error handler
+    // the error handler needs the error message and the `res` object so that it
+    // can send an error message back to the client
     .catch(next)
 })
 
