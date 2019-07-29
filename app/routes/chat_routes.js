@@ -1,7 +1,6 @@
 // Express docs: http://expressjs.com/en/api.html
 const express = require('express')
 // Passport docs: http://www.passportjs.org/docs/
-const passport = require('passport')
 
 // pull in Mongoose model for chats and users
 const Chat = require('../models/chat')
@@ -27,7 +26,6 @@ const handle404 = customErrors.handle404
 // passing this as a second argument to `router.<verb>` will make it
 // so that a token MUST be passed for that route to be available
 // it will also set `req.user`
-const requireToken = passport.authenticate('bearer', { session: false })
 
 // instantiate a router (mini app that only handles routes)
 const router = express.Router()
@@ -71,14 +69,13 @@ router.get('/chats/:id', (req, res, next) => {
 
 // CREATE
 // POST /chats
-router.post('/chats', requireToken, (req, res, next) => {
-  // set owner of new example to be current user
-  req.body.example.owner = req.user.id
+router.post('/chats', (req, res, next) => {
+  // set owner of new chat to be current user
 
-  Chat.create(req.body.example)
-    // respond to succesful `create` with status 201 and JSON of new "example"
-    .then(example => {
-      res.status(201).json({ example: example.toObject() })
+  Chat.create(req.body.chat)
+    // respond to succesful `create` with status 201 and JSON of new "chat"
+    .then(chat => {
+      res.status(201).json({ chat: chat.toObject() })
     })
     // if an error occurs, pass it off to our error handler
     // the error handler needs the error message and the `res` object so that it
