@@ -35,19 +35,14 @@ const router = express.Router()
 
 // INDEX
 // GET /messages
-router.get('/messages', requireToken, (req, res, next) => {
-  // make sure requester is a participant
-  Chat.findById(req.body.message.chat).populate('user1').populate('user2')
-    .then(chat => requireParticipation(req, chat))
-    .catch(next)
-
-  Message.find({ chat: req.body.message.chat }).sort('createdAt')
-    .populate({path: 'messages', populate: {path: 'owner', select: 'username'}})
+router.get('/messages', (req, res, next) => {
+  Message.find()
+    // .populate({path: 'lastMessage', populate: {path: 'owner'}})
     .then(messages => {
       // `messages` will be an array of Mongoose documents
       // we want to convert each one to a POJO, so we use `.map` to
       // apply `.toObject` to each one
-      return messages.map(message => message.toObject())
+      return messages.map(chat => chat.toObject())
     })
     // respond with status 200 and JSON of the messages
     .then(messages => res.status(200).json({ messages: messages }))
@@ -57,7 +52,7 @@ router.get('/messages', requireToken, (req, res, next) => {
 
 // SHOW
 // GET /messages/5a7db6c74d55bc51bdf39793
-router.get('/messages/:id', requireToken, (req, res, next) => {
+router.get('/messages/:id', (req, res, next) => {
   // req.params.id will be set based on the `:id` in the route
   Message.findById(req.params.id)
     .populate({path: 'messages', populate: {path: 'owner', select: 'username'}})
@@ -74,14 +69,10 @@ router.get('/messages/:id', requireToken, (req, res, next) => {
 // CREATE
 // POST /messages
 router.post('/messages', requireToken, (req, res, next) => {
+  console.log(req.body.message)
+  console.log(req.user)
   // make sure sender is a participant
-  Chat.findById(req.body.message.chat)
-    .then(chat => requireParticipation(req, chat))
-    .catch(next)
-
-  // set owner of new message to be current user
   req.body.message.owner = req.user.id
-
   // create new message
   Message.create(req.body.message)
   // respond to succesful `create` with status 201 and JSON of new "message"
@@ -92,7 +83,7 @@ router.post('/messages', requireToken, (req, res, next) => {
     .then(message => {
       Chat.findById(req.body.message.chat)
         .then(chat => {
-          return chat.update({ lastMessage: message })
+          return chat.update({ messages: message })
         })
         .catch(next)
     })

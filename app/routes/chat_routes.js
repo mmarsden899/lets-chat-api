@@ -83,6 +83,27 @@ router.post('/chats', (req, res, next) => {
     .catch(next)
 })
 
+// UPDATE
+// PATCH /messages/5a7db6c74d55bc51bdf39793
+router.patch('/chats/:id', (req, res, next) => {
+  // if the client attempts to change the `owner` property by including a new
+  // owner, prevent that by deleting that key/value pair
+
+  Chat.findById(req.params.id)
+    .then(handle404)
+    .then(comment => {
+      // pass the `req` object and the Mongoose record to `requireOwnership`
+      // it will throw an error if the current user isn't the owner
+
+      // pass the result of Mongoose's `.update` to the next `.then`
+      return comment.update(req.body.comment)
+    })
+    // if that succeeded, return 204 and no JSON
+    .then(() => res.sendStatus(204))
+    // if an error occurs, pass it to the handler
+    .catch(next)
+})
+
 // DESTROY
 // DELETE /chats/5a7db6c74d55bc51bdf39793
 router.delete('/chats/:id', (req, res, next) => {
