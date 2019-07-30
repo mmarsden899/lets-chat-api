@@ -1,10 +1,10 @@
 const mongoose = require('mongoose')
 
 const chatSchema = new mongoose.Schema({
-  messages: {
+  messages: [{
     type: mongoose.Schema.Types.Mixed,
     ref: 'Message'
-  },
+  }],
   name: {
     type: String,
     required: true,
